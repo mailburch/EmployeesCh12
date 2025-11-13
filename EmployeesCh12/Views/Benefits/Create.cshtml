@@ -7,22 +7,37 @@
 <h1>Create</h1>
 
 <h4>Benefits</h4>
+@if (ViewBag.Debug != null)
+{
+    <div style="color:red; font-weight:bold;">
+        DEBUG: @ViewBag.Debug
+    </div>
+}
+
 <hr />
 <div class="row">
     <div class="col-md-4">
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
+
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
             <div class="form-group">
                 <label asp-for="EmployeeID" class="control-label"></label>
-                <select asp-for="EmployeeID" class ="form-control" asp-items="ViewBag.EmployeeID"></select>
+                <select asp-for="EmployeeID"
+                        class="form-control"
+                        asp-items="ViewBag.EmployeeID"></select>
+                <!-- ⭐ IMPORTANT -->
+                <span asp-validation-for="EmployeeID" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="PlanName" class="control-label"></label>
                 <input asp-for="PlanName" class="form-control" />
                 <span asp-validation-for="PlanName" class="text-danger"></span>
             </div>
-            <div class="form-group">
+
+            <div class="form-group mt-2">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
         </form>
@@ -34,5 +49,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

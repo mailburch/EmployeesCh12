@@ -1,8 +1,10 @@
 ﻿using EmployeesCh12.Data;
 using EmployeesCh12.Models;
+using EmployeesCh12.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace EmployeesCh12.Controllers
 {
@@ -16,11 +18,61 @@ namespace EmployeesCh12.Controllers
         }
 
         // GET: Employees
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+    string? sortOrder,
+    string? currentFilter,
+    string? searchString,
+    int? pageNumber)
         {
-            var employeeContext = _context.Employees.Include(e => e.Department);
-            return View(await employeeContext.ToListAsync());
+            // current sort state
+            ViewData["CurrentSort"] = sortOrder;
+
+            // set up sort toggles (Name and Rate)
+            ViewData["NameSortParm"] = string.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["RateSortParm"] = sortOrder == "Rate" ? "rate_desc" : "Rate";
+
+            // if new search text, reset to page 1
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            ViewData["CurrentFilter"] = searchString;
+
+            // base query with Department eager loaded
+            var employees = from e in _context.Employees
+                                .Include(e => e.Department)
+                            select e;
+
+            // FILTER: search by Name (and optionally Department name)
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                employees = employees.Where(e =>
+                    e.Name.Contains(searchString) ||
+                    (e.Department != null && e.Department.Name.Contains(searchString)));
+            }
+
+            // SORT: Name & Rate
+            employees = sortOrder switch
+            {
+                "name_desc" => employees.OrderByDescending(e => e.Name),
+                "Rate" => employees.OrderBy(e => e.Rate),
+                "rate_desc" => employees.OrderByDescending(e => e.Rate),
+                _ => employees.OrderBy(e => e.Name), // default
+            };
+
+            // PAGINATION
+            int pageSize = 3; // rows per page; adjust if you want
+            return View(await PaginatedList<Employee>.CreateAsync(
+                employees.AsNoTracking(),
+                pageNumber ?? 1,
+                pageSize));
         }
+
 
         // GET: Employees/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -162,5 +214,21 @@ namespace EmployeesCh12.Controllers
         {
             return _context.Employees.Any(e => e.Id == id);
         }
+
+        public IActionResult DeptCount()
+        {
+            IQueryable<DepartmentGroup> data =
+                from e in _context.Employees
+                    .Include(e => e.Department)
+                group e by e.DepartmentID into deptGroup
+                select new DepartmentGroup
+                {
+                    DepartmentID = deptGroup.Key,
+                    DepartmentCount = deptGroup.Count()
+                };
+
+            return View(data.ToList());
+        }
+
     }
 }

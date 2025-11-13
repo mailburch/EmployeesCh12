@@ -18,7 +18,8 @@ namespace EmployeesCh12.Controllers
         // GET: Benefits
         public async Task<IActionResult> Index()
         {
-            var employeeContext = _context.Benefits.Include(b => b.Employee);
+            var employeeContext = _context.Benefits
+                .Include(b => b.Employee);
             return View(await employeeContext.ToListAsync());
         }
 
@@ -44,26 +45,78 @@ namespace EmployeesCh12.Controllers
         // GET: Benefits/Create
         public IActionResult Create()
         {
-            ViewData["EmployeeID"] = new SelectList(_context.Employees, "Id", "Name");
+            // Only show employees who DON'T already have a benefits row
+            var usedEmployeeIds = _context.Benefits
+                .Select(b => b.EmployeeID)
+                .ToList();
+
+            var availableEmployees = _context.Employees
+                .Where(e => !usedEmployeeIds.Contains(e.Id))
+                .OrderBy(e => e.Name)
+                .ToList();
+
+            if (!availableEmployees.Any())
+            {
+                // Optional: tell the user why nothing is in the dropdown
+                ModelState.AddModelError(string.Empty, "All employees already have benefits. Create a new employee first.");
+            }
+
+            ViewData["EmployeeID"] = new SelectList(availableEmployees, "Id", "Name");
             return View();
         }
 
         // POST: Benefits/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("EmployeeID,PlanName")] Benefits benefits)
         {
+            // Enforce 1-to-1: don't allow duplicate benefits for same employee
+            if (await _context.Benefits.AnyAsync(b => b.EmployeeID == benefits.EmployeeID))
+            {
+                ModelState.AddModelError("EmployeeID", "This employee already has a benefits plan.");
+            }
+
             if (ModelState.IsValid)
             {
-                _context.Add(benefits);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                try
+                {
+                    _context.Add(benefits);
+                    await _context.SaveChangesAsync();
+                    // DEBUG: prove we hit the success path
+                    TempData["BenefitsDebug"] = "Save was successful.";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (DbUpdateException ex)
+                {
+                    // Show the actual DB error text in dev so we stop guessing
+                    ModelState.AddModelError(string.Empty,
+                        $"DB error: {ex.GetBaseException().Message}");
+                }
             }
-            ViewData["EmployeeID"] = new SelectList(_context.Employees, "Id", "Name", benefits.EmployeeID);
+
+            // At this point, ModelState is NOT valid. Let's dump it.
+            var allErrors = string.Join(" | ",
+                ModelState
+                    .Where(kvp => kvp.Value.Errors.Count > 0)
+                    .SelectMany(kvp =>
+                        kvp.Value.Errors.Select(e => $"{kvp.Key}: {e.ErrorMessage}")));
+
+            ViewBag.Debug = $"ModelState invalid. Errors: {allErrors}";
+
+            // Rebuild dropdown
+            var usedEmployeeIds = _context.Benefits
+                .Select(b => b.EmployeeID)
+                .ToList();
+
+            var availableEmployees = _context.Employees
+                .Where(e => !usedEmployeeIds.Contains(e.Id) || e.Id == benefits.EmployeeID)
+                .OrderBy(e => e.Name)
+                .ToList();
+
+            ViewData["EmployeeID"] = new SelectList(availableEmployees, "Id", "Name", benefits.EmployeeID);
             return View(benefits);
         }
+
 
         // GET: Benefits/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -78,13 +131,13 @@ namespace EmployeesCh12.Controllers
             {
                 return NotFound();
             }
-            ViewData["EmployeeID"] = new SelectList(_context.Employees, "Id", "Name", benefits.EmployeeID);
+
+            // For simplicity, let user see all employees; primary key still must match in POST
+            ViewData["EmployeeID"] = new SelectList(_context.Employees.OrderBy(e => e.Name), "Id", "Name", benefits.EmployeeID);
             return View(benefits);
         }
 
         // POST: Benefits/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("EmployeeID,PlanName")] Benefits benefits)
@@ -112,9 +165,18 @@ namespace EmployeesCh12.Controllers
                         throw;
                     }
                 }
+                catch (DbUpdateException)
+                {
+                    ModelState.AddModelError(string.Empty,
+                        "Unable to save changes. Try again, and if the problem persists, contact your system administrator.");
+                    ViewData["EmployeeID"] = new SelectList(_context.Employees.OrderBy(e => e.Name), "Id", "Name", benefits.EmployeeID);
+                    return View(benefits);
+                }
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["EmployeeID"] = new SelectList(_context.Employees, "Id", "Name", benefits.EmployeeID);
+
+            ViewData["EmployeeID"] = new SelectList(_context.Employees.OrderBy(e => e.Name), "Id", "Name", benefits.EmployeeID);
             return View(benefits);
         }
 

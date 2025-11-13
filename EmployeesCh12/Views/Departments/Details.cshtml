@@ -10,21 +10,38 @@
     <h4>Department</h4>
     <hr />
     <dl class="row">
-        <dt class = "col-sm-2">
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Name)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Name)
         </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Location)
+
+        <dt class="col-sm-2">
+            Locations
         </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Location)
+        <dd class="col-sm-10">
+            @if (Model.DepartmentLocations != null && Model.DepartmentLocations.Any())
+            {
+                <ul>
+                    @foreach (var dl in Model.DepartmentLocations)
+                    {
+                        if (dl.Location != null)
+                        {
+                            <li>@dl.Location.Address</li>
+                        }
+                    }
+                </ul>
+            }
+            else
+            {
+                @:None
+            }
         </dd>
     </dl>
 </div>
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
+    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>

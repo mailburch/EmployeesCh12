@@ -17,7 +17,11 @@ namespace EmployeesCh12.Controllers
         // GET: Departments
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Departments.ToListAsync());
+            var departments = _context.Departments
+                .Include(d => d.DepartmentLocations)
+                    .ThenInclude(dl => dl.Location);
+
+            return View(await departments.ToListAsync());
         }
 
         // GET: Departments/Details/5
@@ -29,7 +33,10 @@ namespace EmployeesCh12.Controllers
             }
 
             var department = await _context.Departments
+                .Include(d => d.DepartmentLocations)
+                    .ThenInclude(dl => dl.Location)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (department == null)
             {
                 return NotFound();
@@ -45,11 +52,9 @@ namespace EmployeesCh12.Controllers
         }
 
         // POST: Departments/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Location")] Department department)
+        public async Task<IActionResult> Create([Bind("Id,Name")] Department department)
         {
             if (ModelState.IsValid)
             {
@@ -57,6 +62,7 @@ namespace EmployeesCh12.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
             return View(department);
         }
 
@@ -73,15 +79,14 @@ namespace EmployeesCh12.Controllers
             {
                 return NotFound();
             }
+
             return View(department);
         }
 
         // POST: Departments/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Location")] Department department)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] Department department)
         {
             if (id != department.Id)
             {
@@ -106,8 +111,10 @@ namespace EmployeesCh12.Controllers
                         throw;
                     }
                 }
+
                 return RedirectToAction(nameof(Index));
             }
+
             return View(department);
         }
 
@@ -121,6 +128,7 @@ namespace EmployeesCh12.Controllers
 
             var department = await _context.Departments
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (department == null)
             {
                 return NotFound();

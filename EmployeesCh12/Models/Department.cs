@@ -9,8 +9,6 @@ namespace EmployeesCh12.Models
         [Required, StringLength(50)]
         public string Name { get; set; } = string.Empty;
 
-        public string? Location { get; set; } = string.Empty;
-
         // one Department → many Employees
         public ICollection<Employee> Employees { get; set; } = new HashSet<Employee>();
 

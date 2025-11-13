@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
 
 namespace EmployeesCh12.Models
 {
@@ -9,6 +10,8 @@ namespace EmployeesCh12.Models
 
         public string? PlanName { get; set; }
 
-        public Employee Employee { get; set; } = null!;
+        // Navigation property – do NOT require this on form posts
+        [ValidateNever]
+        public Employee? Employee { get; set; }
     }
 }
