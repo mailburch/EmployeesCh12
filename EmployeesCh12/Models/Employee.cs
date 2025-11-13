@@ -19,6 +19,11 @@ namespace EmployeesCh12.Models
         [Range(15, 75)]
         public double Rate { get; set; }
 
+        // NEW: Hire Date
+        [DataType(DataType.Date)]
+        [Display(Name = "Hire Date")]
+        public DateTime HireDate { get; set; } = DateTime.Today;
+
         // FK you actually post from the form
         [Required]
         public int DepartmentID { get; set; }

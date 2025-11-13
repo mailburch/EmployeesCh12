@@ -19,17 +19,17 @@ namespace EmployeesCh12.Controllers
 
         // GET: Employees
         public async Task<IActionResult> Index(
-    string? sortOrder,
-    string? currentFilter,
-    string? searchString,
-    int? pageNumber)
+            string? sortOrder,
+            string? currentFilter,
+            string? searchString,
+            int? pageNumber)
         {
             // current sort state
             ViewData["CurrentSort"] = sortOrder;
 
-            // set up sort toggles (Name and Rate)
+            // set up sort toggles (Name and HireDate)
             ViewData["NameSortParm"] = string.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
-            ViewData["RateSortParm"] = sortOrder == "Rate" ? "rate_desc" : "Rate";
+            ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
 
             // if new search text, reset to page 1
             if (searchString != null)
@@ -56,12 +56,12 @@ namespace EmployeesCh12.Controllers
                     (e.Department != null && e.Department.Name.Contains(searchString)));
             }
 
-            // SORT: Name & Rate
+            // SORT: Name & HireDate
             employees = sortOrder switch
             {
                 "name_desc" => employees.OrderByDescending(e => e.Name),
-                "Rate" => employees.OrderBy(e => e.Rate),
-                "rate_desc" => employees.OrderByDescending(e => e.Rate),
+                "Date" => employees.OrderBy(e => e.HireDate),
+                "date_desc" => employees.OrderByDescending(e => e.HireDate),
                 _ => employees.OrderBy(e => e.Name), // default
             };
 
