@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using EmployeesCh12.Models;
+using EmployeesCh12.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using EmployeesCh12.Models;
+
 
 namespace EmployeesCh12.Controllers
 {
@@ -19,10 +17,64 @@ namespace EmployeesCh12.Controllers
         }
 
         // GET: Employees
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+            string sortOrder,
+            string currentFilter,
+            string searchString,
+            int? pageNumber)
         {
-            var employeeContext = _context.Employees.Include(e => e.Benefits).Include(e => e.Department);
-            return View(await employeeContext.ToListAsync());
+            // ----- sort state -----
+            ViewData["CurrentSort"] = sortOrder;
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
+
+            // ----- search state -----
+            if (searchString != null)
+            {
+                pageNumber = 1; // new search – go back to page 1
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            ViewData["CurrentFilter"] = searchString;
+
+            // ----- base query with includes (IMPORTANT: AsQueryable) -----
+            var employees = _context.Employees
+                .Include(e => e.Benefits)
+                .Include(e => e.Department)
+                .AsQueryable();
+
+            // ----- filter (search) -----
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                employees = employees.Where(e =>
+                    e.FirstName.Contains(searchString) ||
+                    e.LastName.Contains(searchString));
+            }
+
+            // ----- sorting -----
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    employees = employees.OrderByDescending(e => e.LastName);
+                    break;
+                case "Date":
+                    employees = employees.OrderBy(e => e.HireDate);
+                    break;
+                case "date_desc":
+                    employees = employees.OrderByDescending(e => e.HireDate);
+                    break;
+                default:
+                    employees = employees.OrderBy(e => e.LastName);
+                    break;
+            }
+
+            // ----- pagination -----
+            int pageSize = 3; // rows per page
+            return View(await PaginatedList<Employee>.CreateAsync(
+                employees.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Employees/Details/5
@@ -165,5 +217,21 @@ namespace EmployeesCh12.Controllers
         {
             return _context.Employees.Any(e => e.ID == id);
         }
+
+        // GET: Employees/DeptCount
+        public IActionResult DeptCount()
+        {
+            IQueryable<DepartmentGroup> data =
+                from employee in _context.Employees.Include(e => e.Department)
+                group employee by employee.DepartmentID into deptGroup
+                select new DepartmentGroup
+                {
+                    DepartmentID = (int)deptGroup.Key,
+                    DepartmentCount = deptGroup.Count()
+                };
+
+            return View(data.ToList());
+        }
+
     }
 }
