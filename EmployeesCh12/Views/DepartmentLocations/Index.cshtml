@@ -1,0 +1,40 @@
+﻿@model IEnumerable<EmployeesCh12.Models.DepartmentLocation>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Department)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Location)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Department.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Location.Address)
+                </td>
+                <td>
+                    @Html.ActionLink("Details", "Details", new { DepartmentID = item.DepartmentID, LocationID = item.LocationID }) |
+                    @Html.ActionLink("Delete", "Delete", new { DepartmentID = item.DepartmentID, LocationID = item.LocationID })
+                </td>
+        </tr>
+}
+    </tbody>
+</table>
